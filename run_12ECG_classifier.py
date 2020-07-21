@@ -1,42 +1,30 @@
 #!/usr/bin/env python
 
-import numpy as np
-import joblib
-from get_12ECG_features import get_12ECG_features
-import lightgbm as lgb
-import pandas as pd
+import torch
+from torch.utils.data import DataLoader
+from ECGDataset import ECGDataset
 
-def run_12ECG_classifier(data,header_data,classes,model_lst):
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    num_classes = len(classes)
-    current_label = np.zeros(num_classes, dtype=int)
-    current_score = np.zeros(num_classes)
-    threshold_=[0.177548, 0.104988, 0.034317, 0.133488, 0.270031, 0.089574, 0.101789, 0.126363, 0.031991]
-    # Use your classifier here to obtain a label and score for each class. 
-    features=np.asarray(get_12ECG_features(data,header_data))
-    feats_reshape = features.reshape(1,-1)
-    for i in range(num_classes):
-        model=model_lst[i]
-        threshold=threshold_[i]
-        score = model.predict(feats_reshape)
-        if score > threshold:
-            label = 1
-        else:
-            label=0
 
-        current_label[i] = label
-        current_score[i] = score
+def run_12ECG_classifier(data, header_data, loaded_model):
+    data = [data]
+    model = loaded_model
+    model.eval()
+    test_dataset = ECGDataset(data, label=[0])
+    test_loader = DataLoader(test_dataset, batch_size=1)
+    data, label = iter(test_loader).next()
+    data = data.to(device)
 
-    return current_label, current_score
+    current_score = model.forward(data).cpu().detach().numpy()[0]
+    current_label = current_score > 0.5
+    classes = sorted(['270492004', '164889003', '164890007', '426627000', '713427006', '713426002', '445118002', '39732003',
+                      '164909002', '251146004', '698252002', '10370003', '284470004', '427172004', '164947007', '111975006',
+                      '164917005', '47665007', '59118001', '427393009', '426177001', '426783006', '427084000', '63593006',
+                      '164934002', '59931005', '17338001'])
+    return current_label, current_score, classes
 
-def load_12ECG_model():
-    # load the model from disk 
-    labels_=['AF', 'I-AVB', 'LBBB', 'Normal', 'RBBB', 'PAC', 'PVC', 'STD', 'STE']
-    loaded_model=[]
-    for label in labels_:
-        
-        filename='./lgb_model/{}_model.txt'.format(label)
-#         print(filename)
-        loaded_model.append(lgb.Booster(model_file=filename))
-        
+
+def load_12ECG_model(input_directory):
+    loaded_model = torch.load(input_directory+'/net1.pkl')
     return loaded_model
