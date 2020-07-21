@@ -20,7 +20,7 @@ class ECGDataset(Dataset):
 
         data_lens = data.shape[1]
         if data_lens < self.data_lens:
-            data = np.pad(data, ((0, 0), (self.data_lens - data_lens, 0)), constant_values=0)
+            data = np.pad(data, ((0, 0), (self.data_lens - data_lens, 0)),mode='constant', constant_values=0)
         elif data_lens > self.data_lens:
             data = data[:, :self.data_lens]
 
