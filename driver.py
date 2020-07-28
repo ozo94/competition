@@ -4,26 +4,24 @@ import numpy as np, os, sys
 from scipy.io import loadmat
 from run_12ECG_classifier import load_12ECG_model, run_12ECG_classifier
 
-def load_challenge_data(filename):
 
+def load_challenge_data(filename):
     x = loadmat(filename)
     data = np.asarray(x['val'], dtype=np.float64)
 
-    new_file = filename.replace('.mat','.hea')
+    new_file = filename.replace('.mat', '.hea')
     input_header_file = os.path.join(new_file)
 
-    with open(input_header_file,'r') as f:
-        header_data=f.readlines()
-
+    with open(input_header_file, 'r') as f:
+        header_data = f.readlines()
 
     return data, header_data
 
 
-def save_challenge_predictions(output_directory,filename,scores,labels,classes):
-
+def save_challenge_predictions(output_directory, filename, scores, labels, classes):
     recording = os.path.splitext(filename)[0]
-    new_file = filename.replace('.mat','.csv')
-    output_file = os.path.join(output_directory,new_file)
+    new_file = filename.replace('.mat', '.csv')
+    output_file = os.path.join(output_directory, new_file)
 
     # Include the filename as the recording number
     recording_string = '#{}'.format(recording)
@@ -33,7 +31,6 @@ def save_challenge_predictions(output_directory,filename,scores,labels,classes):
 
     with open(output_file, 'w') as f:
         f.write(recording_string + '\n' + class_string + '\n' + label_string + '\n' + score_string + '\n')
-
 
 
 if __name__ == '__main__':
@@ -63,12 +60,11 @@ if __name__ == '__main__':
     num_files = len(input_files)
 
     for i, f in enumerate(input_files):
-        print('    {}/{}...'.format(i+1, num_files))
-        tmp_input_file = os.path.join(input_directory,f)
-        data,header_data = load_challenge_data(tmp_input_file)
-        current_label, current_score,classes = run_12ECG_classifier(data,header_data, model)
+        print('    {}/{}...'.format(i + 1, num_files))
+        tmp_input_file = os.path.join(input_directory, f)
+        data, header_data = load_challenge_data(tmp_input_file)
+        current_label, current_score, classes = run_12ECG_classifier(data, header_data, model)
         # Save results.
-        save_challenge_predictions(output_directory,f,current_score,current_label,classes)
-
+        save_challenge_predictions(output_directory, f, current_score, current_label, classes)
 
     print('Done.')

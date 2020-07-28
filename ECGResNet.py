@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+# @Time    :2020-06-05 13:50
+# @Author  :Xuxian
+"""
+
 import torch
 import torch.nn as nn
 
@@ -117,7 +122,7 @@ class ResNet(BasicModule):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
         # Baseline
         self.avgpool = nn.AdaptiveAvgPool1d(1)
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
+        self.fc = nn.Linear(512 * block.expansion + 2, num_classes)
 
         self.sigmoid = nn.Sigmoid()
         self.init()
@@ -139,7 +144,7 @@ class ResNet(BasicModule):
 
         return nn.Sequential(*layers)
 
-    def forward(self, data):
+    def forward(self, data, age, sex):
         x = self.conv1(data)
         x = self.bn1(x)
         x = self.relu(x)
@@ -153,12 +158,16 @@ class ResNet(BasicModule):
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
 
-        x = self.fc(x)
+        sex = sex.unsqueeze(1)
+        age = age.unsqueeze(1)
+        inp = torch.cat([x, age, sex], 1)
+
+        x = self.fc(inp)
         x = self.sigmoid(x)
 
         return x
 
 
-def ResNet50(num_classes):
+def ResNet50(num_classes=55):
     return ResNet(Bottleneck, [3, 4, 6, 3], num_classes)
 

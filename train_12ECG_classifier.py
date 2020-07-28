@@ -2,6 +2,7 @@
 
 import numpy as np, os, sys, joblib
 from scipy.io import loadmat
+import pandas as pd
 from ECGResNet import ResNet50
 import torch
 import torch.nn.functional as F
@@ -53,15 +54,22 @@ def train_12ECG_classifier(input_directory, output_directory):
                         labels_act[class_index] = 1
         labels.append(labels_act)
 
+    labels = pd.DataFrame(labels, columns=classes,dtype='int')
+    labels['713427006'] = labels['713427006'] | labels['59118001']
+    labels['59118001'] = labels['713427006'] | labels['59118001']
+    labels['284470004'] = labels['284470004'] | labels['63593006']
+    labels['63593006'] = labels['284470004'] | labels['63593006']
+    labels['427172004'] = labels['427172004'] | labels['17338001']
+    labels['17338001'] = labels['427172004'] | labels['17338001']
     labels = np.array(labels)
     # Train the classifier
     model = ResNet50(num_classes=27).to(device)
-    train_dataset = ECGDataset(recordings, labels)
+    train_dataset = ECGDataset(recordings, labels, headers, train=True)
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, drop_last=False)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     niters = len(train_loader)
     lr_scheduler = LRScheduler(optimizer, niters, Config)
-    net1 = train(train_loader, model, optimizer, lr_scheduler, 30)
+    net1 = train(train_loader, model, optimizer, lr_scheduler, 24)
 
     # Save model.
     print('Saving model...')
@@ -72,11 +80,13 @@ def train_12ECG_classifier(input_directory, output_directory):
 def train(train_loader, model, optimizer, lr_scheduler, n_epoch):
     for epoch in range(n_epoch):
         model.train()
-        for i, (data, label) in enumerate(train_loader):
+        for i, (data, label, age, sex) in enumerate(train_loader):
             lr_scheduler.update(i, epoch)
             data = data.to(device)
+            age = age.to(device)
+            sex = sex.to(device)
             label = label.to(device)
-            outputs = model.forward(data)
+            outputs = model.forward(data, age, sex)
             loss = F.binary_cross_entropy(outputs, target=label.squeeze())
             optimizer.zero_grad()
             loss.backward()
@@ -85,7 +95,7 @@ def train(train_loader, model, optimizer, lr_scheduler, n_epoch):
 
 
 class Config:
-    epochs = 30
+    epochs = 24
 
     lr_mode = 'cosine'
     base_lr = 0.00075
