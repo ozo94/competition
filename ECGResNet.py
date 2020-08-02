@@ -1,29 +1,9 @@
 # -*- coding: utf-8 -*-
-"""
-# @Time    :2020-06-05 13:50
-# @Author  :Xuxian
-"""
 
 import torch
 import torch.nn as nn
-
-
-class BasicModule(nn.Module):
-    def __init__(self):
-        super(BasicModule, self).__init__()
-
-    def init(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv1d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm1d):
-                nn.init.constant_(m.weight, 1)
-            elif isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight)
-                nn.init.constant_(m.bias, 0.01)
-
-    def load(self, path):
-        self.load_state_dict(torch.load(path))
+import math
+from SENet import SELayer1d
 
 
 def conv3x3(in_planes, out_planes, stride=1):
@@ -42,6 +22,7 @@ class BasicBlock(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
         self.bn2 = nn.BatchNorm1d(planes)
+        self.se1d = SELayer1d(planes, 16)
         self.downsample = downsample
         self.stride = stride
         self.dropout = nn.Dropout(.2)
@@ -55,6 +36,7 @@ class BasicBlock(nn.Module):
         out = self.dropout(out)
         out = self.conv2(out)
         out = self.bn2(out)
+        out = self.se1d(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
@@ -65,48 +47,7 @@ class BasicBlock(nn.Module):
         return out
 
 
-class Bottleneck(nn.Module):
-    expansion = 4
-
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
-        super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv1d(inplanes, planes, kernel_size=7, bias=False, padding=3)
-        self.bn1 = nn.BatchNorm1d(planes)
-        self.conv2 = nn.Conv1d(planes, planes, kernel_size=11, stride=stride,
-                               padding=5, bias=False)
-        self.bn2 = nn.BatchNorm1d(planes)
-        self.conv3 = nn.Conv1d(planes, planes * 4, kernel_size=7, bias=False, padding=3)
-        self.bn3 = nn.BatchNorm1d(planes * 4)
-        self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
-        self.stride = stride
-        self.dropout = nn.Dropout(.2)
-
-    def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.dropout(out)
-
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        if self.downsample is not None:
-            residual = self.downsample(x)
-
-        out += residual
-        out = self.relu(out)
-
-        return out
-
-
-class ResNet(BasicModule):
+class ResNet(nn.Module):
 
     def __init__(self, block, layers, num_classes=55):
         self.inplanes = 64
@@ -123,9 +64,14 @@ class ResNet(BasicModule):
         # Baseline
         self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Linear(512 * block.expansion + 2, num_classes)
-
+        for m in self.modules():
+            if isinstance(m, nn.Conv1d):
+                n = m.kernel_size[0] * m.kernel_size[0] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm1d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
         self.sigmoid = nn.Sigmoid()
-        self.init()
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
@@ -168,6 +114,5 @@ class ResNet(BasicModule):
         return x
 
 
-def ResNet50(num_classes=55):
-    return ResNet(Bottleneck, [3, 4, 6, 3], num_classes)
-
+def ResNet34(num_classes=27):
+    return ResNet(BasicBlock, [3, 4, 6, 3], num_classes)

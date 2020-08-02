@@ -3,7 +3,7 @@
 import numpy as np, os, sys, joblib
 from scipy.io import loadmat
 import pandas as pd
-from ECGResNet import ResNet50
+from ECGResNet import ResNet34
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -63,13 +63,13 @@ def train_12ECG_classifier(input_directory, output_directory):
     labels['17338001'] = labels['427172004'] | labels['17338001']
     labels = np.array(labels)
     # Train the classifier
-    model = ResNet50(num_classes=27).to(device)
+    model = ResNet34(num_classes=27).to(device)
     train_dataset = ECGDataset(recordings, labels, headers, train=True)
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, drop_last=False)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     niters = len(train_loader)
     lr_scheduler = LRScheduler(optimizer, niters, Config)
-    net1 = train(train_loader, model, optimizer, lr_scheduler, 24)
+    net1 = train(train_loader, model, optimizer, lr_scheduler, 20)
 
     # Save model.
     print('Saving model...')
@@ -95,7 +95,7 @@ def train(train_loader, model, optimizer, lr_scheduler, n_epoch):
 
 
 class Config:
-    epochs = 24
+    epochs = 20
 
     lr_mode = 'cosine'
     base_lr = 0.00075

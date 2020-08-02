@@ -33,15 +33,15 @@ class ECGDataset(Dataset):
         for lines in header:
             if lines.startswith('#Age'):
                 try:
-                    age = int(lines.strip().split(': ')[1])
+                    age = lines.strip().split(': ')[1] / 100
                 except:
                     age = 0
             if lines.startswith('#Sex'):
                 sex = lines.strip().split(': ')[1]
                 if sex == 'Female':
-                    sex = 1
+                    sex = 0.5
                 elif sex == 'Male':
-                    sex = 2
+                    sex = 1
                 else:
                     sex = 0
 
