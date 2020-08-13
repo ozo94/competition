@@ -19,11 +19,9 @@ def run_12ECG_classifier(data, header_data, loaded_model):
     sex = sex.to(device)
 
     current_score = model.forward(data, age, sex).cpu().detach().numpy()[0]
-    current_label = current_score > [0.04,0.15,0.2,0.2,0.06,0.18,0.08,0.25,0.09,0.5,
-         0.18,0.15,0.15,0.05,0.08,0.15,0.35,0.17,0.15,0.06,
-         0.4,0.13,0.09,0.15,0.17,0.16,0.04]
-    if (current_label[21]==1) and (sum(current_label)>1):
-        current_label[21]=0
+    current_label = current_score > 0.15
+    if sum(current_label)==0:
+        current_label[21]=1
     classes = sorted(['270492004', '164889003', '164890007', '426627000', '713427006', '713426002', '445118002', '39732003',
                       '164909002', '251146004', '698252002', '10370003', '284470004', '427172004', '164947007', '111975006',
                       '164917005', '47665007', '59118001', '427393009', '426177001', '426783006', '427084000', '63593006',

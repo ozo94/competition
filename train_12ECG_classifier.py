@@ -46,22 +46,24 @@ def train_12ECG_classifier(input_directory, output_directory):
 
         for l in header:
             if l.startswith('#Dx:'):
-                labels_act = np.zeros(num_classes)
+                labels_act = np.zeros(num_classes+1)
                 arrs = l.strip().split(' ')
                 for arr in arrs[1].split(','):
                     if arr.rstrip() in classes:
                         class_index = classes.index(arr.rstrip())  # Only use first positive index
                         labels_act[class_index] = 1
+                labels_act[-1] = len(arrs[1].split(','))
         labels.append(labels_act)
 
-    labels = pd.DataFrame(labels, columns=classes,dtype='int')
+    labels = pd.DataFrame(labels, columns=classes+['label_sum'],dtype='int')
+    labels['426783006'] = labels.apply(lambda df:(1 if ((df['426783006']==1)&(df['label_sum']==1)) else 0),axis=1)
     labels['713427006'] = labels['713427006'] | labels['59118001']
     labels['59118001'] = labels['713427006'] | labels['59118001']
     labels['284470004'] = labels['284470004'] | labels['63593006']
     labels['63593006'] = labels['284470004'] | labels['63593006']
     labels['427172004'] = labels['427172004'] | labels['17338001']
     labels['17338001'] = labels['427172004'] | labels['17338001']
-    labels = np.array(labels)
+    labels = np.array(labels[classes])
     # Train the classifier
     model = ResNet34(num_classes=27).to(device)
     train_dataset = ECGDataset(recordings, labels, headers, train=True)
@@ -69,7 +71,7 @@ def train_12ECG_classifier(input_directory, output_directory):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     niters = len(train_loader)
     lr_scheduler = LRScheduler(optimizer, niters, Config)
-    net1 = train(train_loader, model, optimizer, lr_scheduler, 20)
+    net1 = train(train_loader, model, optimizer, lr_scheduler, 16)
 
     # Save model.
     print('Saving model...')
@@ -95,7 +97,7 @@ def train(train_loader, model, optimizer, lr_scheduler, n_epoch):
 
 
 class Config:
-    epochs = 20
+    epochs = 16
 
     lr_mode = 'cosine'
     base_lr = 0.00075
