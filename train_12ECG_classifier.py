@@ -69,7 +69,7 @@ def train_12ECG_classifier(input_directory, output_directory):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     niters = len(train_loader)
     lr_scheduler = LRScheduler(optimizer, niters, Config)
-    net1 = train(train_loader, model, optimizer, lr_scheduler, 20)
+    net1 = train(train_loader, model, optimizer, lr_scheduler, 18)
 
     # Save model.
     print('Saving model...')
@@ -95,7 +95,7 @@ def train(train_loader, model, optimizer, lr_scheduler, n_epoch):
 
 
 class Config:
-    epochs = 20
+    epochs = 18
 
     lr_mode = 'cosine'
     base_lr = 0.00075
