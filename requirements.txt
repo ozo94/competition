@@ -1,6 +1,6 @@
 numpy
 scipy
-joblib==0.13.2
+joblib==1.2.0
 Cython
 pandas
 scikit-learn
